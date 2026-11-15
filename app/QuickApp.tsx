@@ -82,7 +82,7 @@ export default function QuickApp() {
         {tab === 'Dial' && <Deck today={today} width={column} onPick={(people, index) => setBrowsing({ people, index })} onCard={() => setTab('Card')} />}
         {tab === 'Card' && <Scorecard onMore={() => setTab('Dial')} onChat={goChat} />}
         {tab === 'Chats' && <Chats openId={openChat} setOpenId={setOpenChat} />}
-        {tab === 'You' && <You key={tabReset} width={column} />}
+        {tab === 'You' && <You key={tabReset} width={column} onLeave={() => { setTab('Dial'); setPhase('splash'); }} />}
       </View>
       <View style={styles.tabs} accessibilityRole="tablist">
         {(['Dial', 'Card', 'Chats', 'You'] as Tab[]).map((t) => (

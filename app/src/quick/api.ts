@@ -56,6 +56,10 @@ export interface QuickApi {
   /** Demo only: try a plan before plans go live. */
   tryTier?(t: Tier): Promise<void>;
   subscribe(onChange: () => void): () => void;
+  /** Sign out on this phone. */
+  signOut(): Promise<void>;
+  /** Delete the account for good: profile, photos, videos, Dials and chats. */
+  deleteAccount(): Promise<void>;
   /** Push notifications: the real app gets them from the phone; the demo shows them as a banner. */
   onNotice(l: (n: QNotice) => void): () => void;
 }
@@ -184,6 +188,8 @@ export const demoQuick: QuickApi = {
     profile = p; changed();
   },
   async saveStories() { /* the demo keeps them with the profile */ },
+  async signOut() { /* the demo has no account */ },
+  async deleteAccount() { profile = null; scored.clear(); changed(); },
   async saveBooth() { /* the demo keeps them with the profile */ },
   async setLocation() { /* the demo pretends you're in Leeds */ },
   async setMaxMiles(m) { maxMiles = m; changed(); },
@@ -410,6 +416,12 @@ function createSupabaseQuick(): QuickApi {
       return { showDial: p.quick_show_dial, verified: !!(p.verified_at && p.age_verified_at), tier: t?.tier ?? 'free', plansLive: false };
     },
     async setShowDial(v) { ok(await client.rpc('set_quick_show_dial', { p_show: v })); changed(); },
+    async signOut() { await client.auth.signOut(); },
+    async deleteAccount() {
+      const r = await client.functions.invoke('delete-account', { method: 'POST' });
+      if (r.error || !(r.data as any)?.deleted) throw new Error('We couldn\'t delete your account just now. Please try again, or contact us from the store page.');
+      await client.auth.signOut();
+    },
     async verify() {
       const r: any = ok(await client.functions.invoke('verify-start'));
       if (r?.error) throw new Error(r.error);
@@ -442,3 +454,8 @@ function createSupabaseQuick(): QuickApi {
 }
 
 export const quick: QuickApi = supabaseApi ? createSupabaseQuick() : demoQuick;
+
+// Paid plans and extra rounds stay hidden until in-app purchases are built and approved by both
+// stores: a price that cannot be paid gets an app rejected. The demo still shows them.
+export const PURCHASES_LIVE = false;
+export const showPurchases = () => quick.mode === 'demo' || PURCHASES_LIVE;

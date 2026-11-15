@@ -8,31 +8,36 @@ keystores or certificates to keep in this repo.
 
     git tag quick-v1.0.0 && git push origin quick-v1.0.0
 
-## Must be done before the first store submission
+## Before the first store submission
 
-These are review blockers, not nice-to-haves. Apple and Google both reject dating apps that miss them.
+Done in the code:
 
-1. **Live backend.** The app falls back to demo mode (invented people, "the demo pretends
-   you're in Leeds") when no Supabase keys are set. A store build in demo mode will be rejected.
-   Create the Supabase project (UK/EU), run `supabase/migrations/` in order, deploy the edge
-   functions, add the notifications webhook, then set `EXPO_PUBLIC_SUPABASE_URL` and
-   `EXPO_PUBLIC_SUPABASE_ANON_KEY` as EAS environment variables (production).
-2. **Delete account inside the app.** Apple (guideline 5.1.1(v)) and Google Play both require
-   anyone who can create an account to be able to delete it from within the app, and Google
-   also needs a web page for deletion requests. Not built yet.
-3. **Selfie and age check provider.** `verify-start` / `verify-webhook` need a real provider
-   connected. Dating apps must be 18+ and the stores expect the age check to be real.
-4. **Photo and video moderation.** New media stays "in review" until a moderation provider is
-   connected (or staff approve it). Apps with user content need working moderation, plus the
-   report and block that already exist.
-5. **Paid tiers.** Quick+ shows "£5.99 a month" but purchases are not built
-   ("Coming soon"). Either hide prices for the first release or add in-app purchases
-   (Apple requires its own purchase system for digital upgrades). Showing a price that
-   cannot be bought gets rejected as incomplete.
-6. **Privacy policy and terms** at a public web address, covering photos, videos, selfie
-   checks, rough location, messages, AI reply suggestions (sent to Anthropic only when used),
-   and push notifications.
-7. **Push notifications.** Run `npx eas init` with `EXPO_PUBLIC_APP=quick`, then put the
+- **Delete account inside the app** (You → Delete account), with `supabase/functions/delete-account`
+  and migration `0010_account_deletion.sql`. Deploy that function and run that migration.
+- **Paid plans hidden** until in-app purchases exist (`PURCHASES_LIVE` in `app/src/quick/api.ts`).
+  The demo still shows them.
+- **Report and block from any profile**, not only from chats (the ··· button).
+- **A store build cannot ship the demo**: on Expo's build servers, a production build without the
+  Supabase address and key stops with an error.
+- **Privacy policy, terms and the account-deletion page** in `store/quick-dial/`, plus store
+  listings and draft screenshots. Fill in the [BRACKETED] details, then put the three pages on a
+  public web address (the website works). Have the privacy policy checked before launch.
+
+Still needs your accounts:
+
+1. **Live backend.** Create the Supabase project (UK/EU), run `supabase/migrations/` in order,
+   deploy the edge functions (`delete-account`, `moderate-content`, `quick-push`, `suggest-replies`,
+   `verify-start`, `verify-webhook`), add the Database Webhooks (notifications → quick-push;
+   media and quick_stories → moderate-content), set the `ANTHROPIC_API_KEY` secret, then set
+   `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` as EAS environment variables
+   (production).
+2. **Selfie and age check provider** (e.g. Yoti, Veriff, Ondato): an account and API key, then
+   finish `startSession()` in `verify-start` for that provider.
+3. **A review account** for Apple and Google: a verified test member with a complete profile,
+   and a way for the reviewer to get its sign-in code.
+4. **Real-photo screenshots.** The drafts use the demo's illustrated people; screenshots with
+   real, consenting people will sell the app better.
+5. **Push notifications.** Run `npx eas init` with `EXPO_PUBLIC_APP=quick`, then put the
    project id into `EAS_PROJECT_ID.quick` in `app/app.config.js`.
 
 ## One-time account setup

@@ -10,6 +10,7 @@ import { SECTION, milesLabel, type QPerson } from './core';
 import { quick, type TheirDial } from './api';
 import { colours } from '../theme';
 import { MediaFull } from './Visual';
+import { SafetySheet } from '../components/SafetySheet';
 
 export function Preview({ people, start, onClose, onChoose }:
   { people: QPerson[]; start: number; onClose: () => void; onChoose: (p: QPerson) => void }) {
@@ -19,6 +20,7 @@ export function Preview({ people, start, onClose, onChoose }:
   const person = people[who];
   const n = person.media.length;
   const [their, setTheir] = useState<TheirDial | null>(null);
+  const [safety, setSafety] = useState(false);
   useEffect(() => { setTheir(null); quick.getTheirDial(person.id).then(setTheir).catch(() => setTheir(null)); }, [person.id]);
 
   const person_ = (d: number) => {
@@ -61,6 +63,9 @@ export function Preview({ people, start, onClose, onChoose }:
           <Text style={styles.city}>{[person.city, person.miles != null ? `${milesLabel(person.miles)} away` : null].filter(Boolean).join(' · ')}</Text>
         </View>
         <Text style={styles.count}>{who + 1}/{people.length}</Text>
+        <Pressable onPress={() => setSafety(true)} hitSlop={12} accessibilityRole="button" accessibilityLabel={`Report or block ${person.firstName}`} style={{ marginLeft: 12 }}>
+          <Feather name="more-horizontal" size={22} color="#fff" />
+        </Pressable>
       </View>
 
       <View style={styles.footer}>
@@ -79,6 +84,9 @@ export function Preview({ people, start, onClose, onChoose }:
           {people.map((p, j) => <View key={p.id} style={[styles.pip, j === who && styles.pipOn]} />)}
         </View>
       </View>
+      {safety && <SafetySheet person={{ id: person.id, firstName: person.firstName }}
+        actions={{ report: (r, d, b) => quick.report(person.id, r, d, b), block: () => quick.block(person.id) }}
+        onCancel={() => setSafety(false)} onDone={(blocked) => { setSafety(false); if (blocked) onClose(); }} />}
     </View>
   );
 }

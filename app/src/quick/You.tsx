@@ -1,26 +1,28 @@
 // You: your own Dial over time (averages only, once 5+ people have dialled you), what's working,
-// who can see your Dial, verification, and plans.
+// who can see your Dial, verification, plans, and your account (sign out, delete).
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop, Text as SvgText } from 'react-native-svg';
 import Feather from '@expo/vector-icons/Feather';
 import { Button, Card, H1, Muted } from '../components/ui';
 import { dialWord } from '../core/gauge';
 import { play, setSoundOn, soundOn } from '../sound';
 import { DIAL_GRADIENT, colours, serif, themed } from '../theme';
-import { quick } from './api';
+import { quick, showPurchases } from './api';
 import { PLANS, QD, dialTip, hasDial, perDayLabel, type MyDial, type Tier } from './core';
 import { useQuick } from './useQuick';
 import { Ring } from './Visual';
 import { EditProfile } from './EditProfile';
 
-export function You({ width }: { width: number }) {
+export function You({ width, onLeave }: { width: number; onLeave: () => void }) {
   const { data: dial } = useQuick(() => quick.getMyDial());
   const { data: settings } = useQuick(() => quick.getSettings());
   const [plans, setPlans] = useState(false);
   const [edit, setEdit] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [sound, setSound] = useState(soundOn());
   if (edit) return <EditProfile onBack={() => setEdit(false)} />;
+  if (deleting) return <DeleteAccount onBack={() => setDeleting(false)} onDeleted={onLeave} />;
   if (plans) return <Plans current={settings?.tier ?? 'free'} live={!!settings?.plansLive} onBack={() => setPlans(false)} />;
 
   return (
@@ -60,6 +62,7 @@ export function You({ width }: { width: number }) {
         <Switch value={sound} onValueChange={(v) => { setSound(v); setSoundOn(v); if (v) play('tap'); }} accessibilityLabel="Sounds" trackColor={{ true: colours.accent, false: colours.line }} />
       </Card>
 
+      {showPurchases() && <>
       <Text style={styles.section}>Plan</Text>
       <Card style={styles.row}>
         <Feather name="star" size={20} color={colours.foil} />
@@ -69,6 +72,15 @@ export function You({ width }: { width: number }) {
         </View>
         <Button kind="quiet" label="See plans" onPress={() => setPlans(true)} style={{ paddingVertical: 8, paddingHorizontal: 14 }} />
       </Card>
+      </>}
+
+      <Text style={styles.section}>Account</Text>
+      {quick.mode !== 'demo' && (
+        <Button kind="quiet" label="Sign out" onPress={async () => { await quick.signOut().catch(() => {}); onLeave(); }} />
+      )}
+      <Pressable onPress={() => setDeleting(true)} accessibilityRole="button" style={{ marginTop: 14, alignSelf: 'center', padding: 8 }}>
+        <Text style={styles.danger}>Delete account</Text>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -136,6 +148,37 @@ function Trend({ weeks, width }: { weeks: { week: string; score: number }[]; wid
   );
 }
 
+/** Delete account: says exactly what goes, asks once more, then does it. */
+function DeleteAccount({ onBack, onDeleted }: { onBack: () => void; onDeleted: () => void }) {
+  const [sure, setSure] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const run = async () => {
+    setBusy(true); setError(null);
+    try { await quick.deleteAccount(); onDeleted(); }
+    catch (e: any) { setError(String(e?.message ?? e)); setBusy(false); }
+  };
+  return (
+    <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>
+      <Pressable onPress={onBack} accessibilityRole="button" hitSlop={12} disabled={busy}><Text style={styles.back}><Feather name="chevron-left" size={14} color={colours.slate} /> You</Text></Pressable>
+      <H1>Delete account</H1>
+      <Muted>This can't be undone. Straight away, we delete:</Muted>
+      {['Your profile, photos, video and stories', 'Your Dials, both given and received', 'Your chats and connections', 'Your location and notification settings'].map((t) => (
+        <Text key={t} style={styles.perk}>✦  {t}</Text>
+      ))}
+      <Muted style={{ marginTop: 14 }}>If other members reported you, a record of those reports (not your photos or messages) is kept for 12 months to keep people safe.{showPurchases() ? ' If you pay for a plan, cancel it in your app store settings as well.' : ''}</Muted>
+      {busy ? <ActivityIndicator color={colours.accent} style={{ marginTop: 24 }} />
+        : !sure ? <Button label="Delete my account" onPress={() => setSure(true)} style={{ marginTop: 24, backgroundColor: colours.danger }} />
+        : <>
+            <Text style={[styles.rowTitle, { marginTop: 24, textAlign: 'center' }]}>Are you sure? Everything goes, for good.</Text>
+            <Button label="Yes, delete everything" onPress={run} style={{ marginTop: 12, backgroundColor: colours.danger }} />
+            <Button kind="quiet" label="Keep my account" onPress={onBack} style={{ marginTop: 10 }} />
+          </>}
+      {!!error && <Muted style={{ marginTop: 12, textAlign: 'center' }}>{error}</Muted>}
+    </ScrollView>
+  );
+}
+
 /** Plans: built and ready, switched on once there are enough people. */
 export function Plans({ current, live, onBack }: { current: Tier; live: boolean; onBack: () => void }) {
   return (
@@ -176,4 +219,5 @@ const styles = themed(() => StyleSheet.create({
   planName: { color: colours.text, fontFamily: serif, fontSize: 28 },
   planPrice: { color: colours.foil, fontSize: 14, fontWeight: '700' },
   perk: { color: colours.text, fontSize: 14, marginTop: 8 },
+  danger: { color: colours.danger, fontSize: 14, fontWeight: '600' },
 }));

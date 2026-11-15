@@ -6,6 +6,12 @@ const QUICK = process.env.EXPO_PUBLIC_APP === 'quick';
 const EAS_PROJECT_ID = { quick: '', dial: '' };
 
 module.exports = ({ config }) => {
+  // A store build must never ship the demo (invented people). On Expo's build servers, refuse to
+  // build Quick Dial for the stores without the live backend's address and key.
+  if (process.env.EAS_BUILD === 'true' && /production/.test(process.env.EAS_BUILD_PROFILE || '')
+      && !(process.env.EXPO_PUBLIC_SUPABASE_URL && process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY)) {
+    throw new Error('Store build without EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY would ship the demo. Set them as EAS environment variables (production).');
+  }
   const id = QUICK ? 'com.quickdial.app' : 'com.dialdating.app';
   const name = QUICK ? 'Quick Dial' : config.name;
   const projectId = EAS_PROJECT_ID[QUICK ? 'quick' : 'dial'] || undefined;

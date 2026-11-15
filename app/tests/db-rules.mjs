@@ -18,7 +18,7 @@ await db.exec(`
     $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   grant usage on schema auth to authenticated, anon;
 `);
-for (const f of ['0001_core.sql', '0002_engagement.sql', '0003_storage.sql', '0004_types.sql', '0005_dial_training.sql', '0006_dial_matching.sql', '0007_games.sql', '0008_safety.sql', '0009_quick_dial.sql'])
+for (const f of ['0001_core.sql', '0002_engagement.sql', '0003_storage.sql', '0004_types.sql', '0005_dial_training.sql', '0006_dial_matching.sql', '0007_games.sql', '0008_safety.sql', '0009_quick_dial.sql', '0010_account_deletion.sql'])
   await db.exec(readFileSync(join(here, '../../supabase/migrations/' + f), 'utf8'));
 
 let passed = 0;
@@ -600,6 +600,33 @@ await test('quick dial: your own Dial after 5 people; theirs only with permissio
   assert.equal((await asUser(viewer, 'select quick_their_dial($1) d', [uuid(120)])).rows[0].d.available, true);
   assert.deepEqual((await asUser(viewer, 'select allowance, tier from quick_today()')).rows[0], { allowance: 10, tier: 'plus' });
   await admin(`update economy set value=0 where key='quick_plans_live'`);
+});
+
+await test('deleting an account removes everything of theirs and keeps only a staff-only record of reports about them', async () => {
+  const gone = 190, other = 191, staffer = 192;
+  for (const n of [gone, other, staffer]) await makeUser(n);
+  const item = await addMedia(gone);
+  await asUser(other, 'select rate_media($1, 75)', [item]);
+  await asUser(other, `select report_member($1, 'harassment', 'kept messaging after I said no')`, [uuid(gone)]);
+  await asUser(gone, 'select report_member($1, $2)', [uuid(other), 'spam_or_scam']);
+  await admin('insert into staff values ($1)', [uuid(staffer)]);
+  await admin(`insert into mod_actions (staff, action, target) values ($1, 'note', $2)`, [uuid(staffer), uuid(other)]);
+  await db.exec(`select set_config('request.jwt.claim.sub', '', false)`);
+  await rejects(db.query('select prepare_account_deletion()'), /not_signed_in/);
+  await asUser(gone, 'select prepare_account_deletion()');
+  await admin('delete from auth.users where id = $1', [uuid(gone)]);
+  for (const [table, col] of [['profiles', 'id'], ['media', 'owner'], ['reports', 'reporter'], ['blocks', 'blocker']])
+    assert.equal((await admin(`select count(*)::int n from ${table} where ${col} = $1`, [uuid(gone)])).rows[0].n, 0, table);
+  const kept = (await admin('select reports from account_deletions where member = $1', [uuid(gone)])).rows;
+  assert.equal(kept.length, 1); assert.equal(kept[0].reports[0].reason, 'harassment');
+  assert.equal((await asUser(other, 'select count(*)::int n from account_deletions')).rows[0].n, 0);   // staff only
+  assert.equal((await asUser(staffer, 'select count(*)::int n from account_deletions')).rows[0].n, 1);
+  // A member with nothing reported about them leaves no record at all.
+  await asUser(other, 'select prepare_account_deletion()');
+  assert.equal((await admin('select count(*)::int n from account_deletions where member = $1', [uuid(other)])).rows[0].n, 0);
+  // Staff can leave too; their moderation history stays, unattributed.
+  await admin('delete from auth.users where id = $1', [uuid(staffer)]);
+  assert.equal((await admin(`select count(*)::int n from mod_actions where target = $1 and staff is null`, [uuid(other)])).rows[0].n, 1);
 });
 
 console.log(`\n${passed} checks passed${process.exitCode ? ', some FAILED' : ''}`);

@@ -8,7 +8,7 @@ import { Button, Card, H1, Muted } from '../components/ui';
 import { dialWord } from '../core/gauge';
 import { play } from '../sound';
 import { colours, radius, serif, themed } from '../theme';
-import { quick, type QNotice } from './api';
+import { quick, showPurchases, type QNotice } from './api';
 import { QD, STATUS_LABEL, cardStats, friendly, isUnlimited, milesLabel, openers, status, until, type QPerson } from './core';
 import type { QToday } from './api';
 import { useQuick } from './useQuick';
@@ -30,8 +30,8 @@ export function Deck({ today, width, onPick, onCard }: { today: QToday | undefin
       <Muted style={{ textAlign: 'center', maxWidth: 320 }}>Fresh faces in {until(today.resetsAt)}. Fewer, better Dials make every mutual mean more.</Muted>
       <View style={styles.roundDots}>{Array.from({ length: today.allowance }, (_, k) => <View key={k} style={[styles.roundDot, styles.roundDone, { width: 40, flex: 0 }]} />)}</View>
       <Button label="See your scorecard" onPress={onCard} style={{ alignSelf: 'stretch', marginTop: 20 }} />
-      <Button kind="quiet" label={buying ? 'One sec…' : quick.mode === 'demo' ? 'Unlock one more round (premium, free in demo)' : 'Unlock one more round'} style={{ alignSelf: 'stretch', marginTop: 10 }}
-        onPress={async () => { setBuying(true); setNote(null); try { await quick.buyExtraRound(); play('reward', 0.6); } catch (e) { setNote(friendly(e)); } finally { setBuying(false); } }} />
+      {showPurchases() && <Button kind="quiet" label={buying ? 'One sec…' : quick.mode === 'demo' ? 'Unlock one more round (premium, free in demo)' : 'Unlock one more round'} style={{ alignSelf: 'stretch', marginTop: 10 }}
+        onPress={async () => { setBuying(true); setNote(null); try { await quick.buyExtraRound(); play('reward', 0.6); } catch (e) { setNote(friendly(e)); } finally { setBuying(false); } }} />}
       {!!note && <Muted style={{ marginTop: 10, textAlign: 'center' }}>{note}</Muted>}
     </ScrollView>
   );
@@ -47,7 +47,7 @@ export function Deck({ today, width, onPick, onCard }: { today: QToday | undefin
         {Array.from({ length: isUnlimited(total) ? 0 : total }, (_, k) => <View key={k} style={[styles.roundDot, k < round - 1 && styles.roundDone, k === round - 1 && styles.roundNow]} />)}
       </View>
       {!!(deck as any)?.hiddenAdmirers && (
-        <Text style={styles.admirers}>✦ Someone in this ten dialled you high. Quick+ shows who.</Text>
+        <Text style={styles.admirers}>✦ Someone in this ten dialled you high.{showPurchases() ? ' Quick+ shows who.' : ''}</Text>
       )}
       {deck?.length === 0 && <Muted style={{ textAlign: 'center', marginTop: 40 }}>You've dialled everyone nearby. New people join every day.</Muted>}
       <View style={{ marginTop: 10 }}>

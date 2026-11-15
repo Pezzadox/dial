@@ -1,0 +1,5 @@
+Sign-in is by a one-time code sent to an email address. Review account: [REVIEW EMAIL]. [HOW THE REVIEWER GETS THE CODE — e.g. the inbox login, or a fixed code set up for this one address.]
+The review account is already verified with a complete profile, so you land on the deck of ten people straight away.
+Report and block: the ··· button at the top of any profile or chat. Delete account: You tab, bottom of the screen.
+Every photo and story is checked automatically before anyone sees it; anything uncertain goes to a person. Videos are always checked by a person.
+There are no in-app purchases in this version.
