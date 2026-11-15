@@ -1,0 +1,57 @@
+# Quick Dial — one tag, both stores, through Expo's build service (EAS).
+#
+#   git tag quick-v1.0.0 && git push origin quick-v1.0.0
+#
+# EAS builds the Android bundle and the iOS app in the cloud, signs them with the
+# credentials stored in the Expo project, and sends them to Play internal testing and
+# TestFlight as drafts. Nothing reaches anyone until it is promoted in the consoles.
+# See docs/quick-dial-release.md for the one-time setup.
+
+name: Quick Dial release
+
+on:
+  push:
+    tags: ['quick-v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build, e.g. 1.0.0'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'npm', cache-dependency-path: app/package-lock.json }
+
+      - name: Is the Expo token set?
+        id: gate
+        env: { EXPO_TOKEN: '${{ secrets.EXPO_TOKEN }}' }
+        run: |
+          if [ -n "$EXPO_TOKEN" ]; then echo "ready=yes" >> $GITHUB_OUTPUT
+          else echo "ready=no" >> $GITHUB_OUTPUT; echo "::warning::EXPO_TOKEN not set — skipping the Quick Dial build."; fi
+
+      - if: steps.gate.outputs.ready == 'yes'
+        run: npm ci
+
+      - name: Checks
+        if: steps.gate.outputs.ready == 'yes'
+        run: npx tsc --noEmit && npx vitest run && node tests/db-rules.mjs
+
+      - uses: expo/expo-github-action@v8
+        if: steps.gate.outputs.ready == 'yes'
+        with: { eas-version: latest, token: '${{ secrets.EXPO_TOKEN }}' }
+
+      - name: Build both apps and send them to the stores
+        if: steps.gate.outputs.ready == 'yes'
+        env:
+          EXPO_PUBLIC_APP: quick
+          APP_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          [ -z "$APP_VERSION" ] && export APP_VERSION="${GITHUB_REF_NAME#quick-v}"
+          eas build --profile quick-production --platform all --non-interactive --no-wait --auto-submit

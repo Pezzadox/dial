@@ -1,0 +1,48 @@
+// One codebase, two apps. EXPO_PUBLIC_APP=quick builds Quick Dial; anything else builds Dial.
+// app.json holds what both share; this file adds the store identity and phone permissions.
+const QUICK = process.env.EXPO_PUBLIC_APP === 'quick';
+
+// Filled in once the Expo project exists (`npx eas init` prints it). Push notifications need it.
+const EAS_PROJECT_ID = { quick: '', dial: '' };
+
+module.exports = ({ config }) => {
+  const id = QUICK ? 'com.quickdial.app' : 'com.dialdating.app';
+  const name = QUICK ? 'Quick Dial' : config.name;
+  const projectId = EAS_PROJECT_ID[QUICK ? 'quick' : 'dial'] || undefined;
+  return {
+    ...config,
+    name,
+    slug: QUICK ? 'quick-dial' : config.slug,
+    scheme: QUICK ? 'quickdial' : 'dial',
+    version: process.env.APP_VERSION || config.version,
+    runtimeVersion: { policy: 'appVersion' },
+    ios: {
+      ...config.ios,
+      bundleIdentifier: id,
+      supportsTablet: false,
+      config: { usesNonExemptEncryption: false },
+      infoPlist: {
+        NSCameraUsageDescription: `${name} uses the camera for your selfie check and for photos and videos you choose to add.`,
+        NSPhotoLibraryUsageDescription: `${name} lets you choose photos and videos for your profile.`,
+        NSMicrophoneUsageDescription: `${name} records sound only while you film a profile video.`,
+        NSLocationWhenInUseUsageDescription: `${name} uses your rough location, rounded to about a kilometre, to show people nearby.`,
+      },
+    },
+    android: {
+      ...config.android,
+      package: id,
+      blockedPermissions: ['android.permission.ACCESS_FINE_LOCATION', 'android.permission.READ_MEDIA_AUDIO', 'android.permission.SYSTEM_ALERT_WINDOW', 'android.permission.FOREGROUND_SERVICE', 'android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK'],
+    },
+    plugins: [
+      'expo-font',
+      ['expo-camera', { cameraPermission: `${name} uses the camera for your selfie check and for photos and videos you choose to add.`, microphonePermission: `${name} records sound only while you film a profile video.`, recordAudioAndroid: true }],
+      ['expo-image-picker', { photosPermission: `${name} lets you choose photos and videos for your profile.` }],
+      ['expo-location', { locationWhenInUsePermission: `${name} uses your rough location, rounded to about a kilometre, to show people nearby.` }],
+      ['expo-notifications', { color: '#08070F' }],
+      'expo-audio',
+      'expo-video',
+      'expo-web-browser',
+    ],
+    extra: { ...(config.extra || {}), app: QUICK ? 'quick' : 'dial', ...(projectId ? { eas: { projectId } } : {}) },
+  };
+};

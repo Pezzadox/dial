@@ -1,0 +1,22 @@
+{
+  "cli": { "version": ">= 16.0.0", "appVersionSource": "remote" },
+  "build": {
+    "quick-production": {
+      "autoIncrement": true,
+      "env": { "EXPO_PUBLIC_APP": "quick" },
+      "environment": "production",
+      "android": { "buildType": "app-bundle" }
+    },
+    "quick-preview": {
+      "distribution": "internal",
+      "env": { "EXPO_PUBLIC_APP": "quick" },
+      "environment": "preview"
+    }
+  },
+  "submit": {
+    "quick-production": {
+      "android": { "track": "internal", "releaseStatus": "draft" },
+      "ios": {}
+    }
+  }
+}
