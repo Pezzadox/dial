@@ -12,7 +12,7 @@ module.exports = ({ config }) => {
       && !(process.env.EXPO_PUBLIC_SUPABASE_URL && process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY)) {
     throw new Error('Store build without EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY would ship the demo. Set them as EAS environment variables (production).');
   }
-  const id = QUICK ? 'com.quickdial.app' : 'com.dialdating.app';
+  const id = QUICK ? 'com.pezzadox.quickdial' : 'com.dialdating.app';
   const name = QUICK ? 'Quick Dial' : config.name;
   const projectId = EAS_PROJECT_ID[QUICK ? 'quick' : 'dial'] || undefined;
   return {

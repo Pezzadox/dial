@@ -1,6 +1,7 @@
 # Quick Dial: getting into the App Store and Google Play
 
-Store ids: `com.quickdial.app` on both stores. Display name: Quick Dial.
+Store ids: `com.pezzadox.quickdial` on both stores (`com.quickdial.app` is taken on Google Play).
+Display name: Quick Dial. The Play Console app entry exists (created 22 November 2026).
 Builds go through Expo's build service (EAS), which also signs them, so there are no
 keystores or certificates to keep in this repo.
 
