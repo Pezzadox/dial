@@ -21,7 +21,8 @@ Done in the code:
 - **A store build cannot ship the demo**: on Expo's build servers, a production build without the
   Supabase address and key stops with an error.
 - **Privacy policy, terms and the account-deletion page** in `store/quick-dial/`, plus store
-  listings and draft screenshots. Fill in the [BRACKETED] details, then put the three pages on a
+  listings, draft screenshots, and the Play icon and feature graphic
+  (`store/quick-dial/android/graphics/`). Fill in the [BRACKETED] details, then put the three pages on a
   public web address (the website works). Have the privacy policy checked before launch.
 
 Still needs your accounts:
