@@ -5,8 +5,11 @@
 # Needs one GitHub secret: SUPABASE_ACCESS_TOKEN (supabase.com → Account → Access tokens).
 # Without it the run only warns, so pushes never fail because of it.
 #
-# verify-webhook is called by the age-check provider, which has no Supabase sign-in,
-# so it is deployed without JWT checks; it checks the provider's signature itself.
+# The project signs members' sessions with its newer (ECC) key, which the gateway's legacy JWT
+# check rejects, so the functions the app calls (delete-account, suggest-replies, verify-start)
+# are deployed without it and check the member themselves with auth.getUser(). verify-webhook is
+# called by Yoti, which has no Supabase sign-in; it re-reads every result from Yoti instead.
+# quick-push and moderate-content keep the gateway check and also compare the service key.
 # The function secrets (ANTHROPIC_API_KEY, VERIFY_*) are set in Supabase, not here.
 
 name: Quick Dial backend
@@ -45,10 +48,12 @@ jobs:
       - name: Deploy the edge functions
         if: steps.gate.outputs.ready == 'yes'
         run: |
-          for f in delete-account moderate-content quick-push suggest-replies verify-start; do
+          for f in moderate-content quick-push; do
             supabase functions deploy "$f" --project-ref "$PROJECT_REF"
           done
-          supabase functions deploy verify-webhook --project-ref "$PROJECT_REF" --no-verify-jwt
+          for f in delete-account suggest-replies verify-start verify-webhook; do
+            supabase functions deploy "$f" --project-ref "$PROJECT_REF" --no-verify-jwt
+          done
 
       - name: List what is live
         if: steps.gate.outputs.ready == 'yes'
