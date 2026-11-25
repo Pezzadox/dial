@@ -11,14 +11,14 @@ const db = new PGlite();
 
 // Minimal stand-in for what Supabase provides.
 await db.exec(`
-  create role authenticated nologin; create role anon nologin;
+  create role authenticated nologin; create role anon nologin; create role service_role nologin;
   create schema auth;
   create table auth.users (id uuid primary key);
   create function auth.uid() returns uuid language sql stable as
     $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   grant usage on schema auth to authenticated, anon;
 `);
-for (const f of ['0001_core.sql', '0002_engagement.sql', '0003_storage.sql', '0004_types.sql', '0005_dial_training.sql', '0006_dial_matching.sql', '0007_games.sql', '0008_safety.sql', '0009_quick_dial.sql', '0010_account_deletion.sql'])
+for (const f of ['0001_core.sql', '0002_engagement.sql', '0003_storage.sql', '0004_types.sql', '0005_dial_training.sql', '0006_dial_matching.sql', '0007_games.sql', '0008_safety.sql', '0009_quick_dial.sql', '0010_account_deletion.sql', '0011_service_role.sql'])
   await db.exec(readFileSync(join(here, '../../supabase/migrations/' + f), 'utf8'));
 
 let passed = 0;
@@ -627,6 +627,16 @@ await test('deleting an account removes everything of theirs and keeps only a st
   // Staff can leave too; their moderation history stays, unattributed.
   await admin('delete from auth.users where id = $1', [uuid(staffer)]);
   assert.equal((await admin(`select count(*)::int n from mod_actions where target = $1 and staff is null`, [uuid(other)])).rows[0].n, 1);
+});
+
+await test('the server role can read and write every table; app users cannot truncate one', async () => {
+  const tables = (await admin(`select tablename from pg_tables where schemaname = 'public'`)).rows.map((r) => r.tablename);
+  for (const t of tables) {
+    const ok = (await admin(`select has_table_privilege('service_role', 'public.' || $1, 'select, insert, update, delete') as ok`, [t])).rows[0].ok;
+    assert.ok(ok, 'service_role lacks privileges on ' + t);
+    const trunc = (await admin(`select has_table_privilege('authenticated', 'public.' || $1, 'truncate') or has_table_privilege('anon', 'public.' || $1, 'truncate') as t`, [t])).rows[0].t;
+    assert.equal(trunc, false, 'a client role can truncate ' + t);
+  }
 });
 
 console.log(`\n${passed} checks passed${process.exitCode ? ', some FAILED' : ''}`);
