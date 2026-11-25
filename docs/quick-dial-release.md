@@ -46,6 +46,16 @@ Still needs your accounts:
    media and quick_stories → moderate-content), set the `ANTHROPIC_API_KEY` secret, then set
    `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` as EAS environment variables
    (production).
+
+   **Live since 25 November 2026** (project `jbcdzsfgqqmwwrwublzo`, London): all six functions,
+   first deployed from the dashboard while the access token was missing. The legacy JWT check is
+   off for every function except moderate-content, because sessions are signed with the project's
+   ECC key; each function checks its caller itself. Database Webhooks (integration installed):
+   `moderate_media` (INSERT on media), `moderate_stories` (INSERT and UPDATE on quick_stories) →
+   moderate-content, and `push_notifications` (INSERT on notifications) → quick-push, all with the
+   service-role header the dashboard adds. Cron (integration installed): `quick-push-every-minute`
+   calls quick-push with a secret key in the `apikey` header. Still missing: `ANTHROPIC_API_KEY`
+   (without it photos and stories stay pending, so nobody is shown) and the Yoti secrets.
 2. **Age check: Yoti** (Age Verification, https://hub.yoti.com). Open an account, then in Supabase →
    Edge Functions → Secrets set `VERIFY_PROVIDER` = `yoti`, `VERIFY_SDK_ID` and `VERIFY_API_KEY`
    from the Yoti Hub. Optional: `VERIFY_ESTIMATION_THRESHOLD` (default 25, the buffer for selfie age
