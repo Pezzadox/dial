@@ -72,8 +72,8 @@ export default function QuickApp() {
   let body: React.ReactNode = null;
   if (phase === 'splash') body = <QuickSplash onDone={afterSplash} />;
   else if (phase === 'intro') body = <QuickIntro onDone={afterIntro} />;
-  else if (!signedIn) body = <SignIn needsProfile={false} onDone={reload} />;
-  else if (supabaseApi && me === null) body = <SignIn needsProfile onDone={reload} />;
+  else if (!signedIn) body = <SignIn brand="Quick Dial" needsProfile={false} onDone={reload} />;
+  else if (supabaseApi && me === null) body = <SignIn brand="Quick Dial" needsProfile onDone={reload} />;
   else if (phase === 'setup') body = <QuickSetup onDone={() => setPhase('app')} />;
   else body = (
     <>
