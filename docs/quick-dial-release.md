@@ -39,7 +39,8 @@ Still needs your accounts:
 
 1. **Live backend.** Create the Supabase project (UK/EU), run `supabase/migrations/` in order,
    deploy the edge functions (`delete-account`, `moderate-content`, `quick-push`, `suggest-replies`,
-   `verify-start`, `verify-webhook`), add the Database Webhooks (notifications → quick-push;
+   `verify-start`, `verify-webhook`) with Actions → **Quick Dial backend** (needs the GitHub secret
+   `SUPABASE_ACCESS_TOKEN`; it also runs on every push that changes a function), add the Database Webhooks (notifications → quick-push;
    media and quick_stories → moderate-content), set the `ANTHROPIC_API_KEY` secret, then set
    `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` as EAS environment variables
    (production).

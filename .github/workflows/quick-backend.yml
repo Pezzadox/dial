@@ -1,0 +1,55 @@
+# Quick Dial backend: deploys the Supabase edge functions in supabase/functions to the
+# quick-dial project (London). Runs by hand (Actions → Quick Dial backend → Run workflow)
+# and on every push to main that changes a function.
+#
+# Needs one GitHub secret: SUPABASE_ACCESS_TOKEN (supabase.com → Account → Access tokens).
+# Without it the run only warns, so pushes never fail because of it.
+#
+# verify-webhook is called by the age-check provider, which has no Supabase sign-in,
+# so it is deployed without JWT checks; it checks the provider's signature itself.
+# The function secrets (ANTHROPIC_API_KEY, VERIFY_*) are set in Supabase, not here.
+
+name: Quick Dial backend
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['supabase/functions/**', '.github/workflows/quick-backend.yml']
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: jbcdzsfgqqmwwrwublzo
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Access token set?
+        id: gate
+        run: |
+          if [ -n "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "ready=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=no" >> "$GITHUB_OUTPUT"
+            echo "::warning::SUPABASE_ACCESS_TOKEN is not set, so nothing was deployed."
+          fi
+
+      - uses: supabase/setup-cli@v1
+        if: steps.gate.outputs.ready == 'yes'
+        with:
+          version: latest
+
+      - name: Deploy the edge functions
+        if: steps.gate.outputs.ready == 'yes'
+        run: |
+          for f in delete-account moderate-content quick-push suggest-replies verify-start; do
+            supabase functions deploy "$f" --project-ref "$PROJECT_REF"
+          done
+          supabase functions deploy verify-webhook --project-ref "$PROJECT_REF" --no-verify-jwt
+
+      - name: List what is live
+        if: steps.gate.outputs.ready == 'yes'
+        run: supabase functions list --project-ref "$PROJECT_REF"
