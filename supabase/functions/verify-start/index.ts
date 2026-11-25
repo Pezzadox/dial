@@ -1,29 +1,32 @@
-// Starts selfie + age verification with the chosen provider and returns the URL the app opens.
-// Provider-neutral: set VERIFY_PROVIDER (e.g. "yoti", "ondato", "veriff") and fill in startSession()
-// for that provider's API. Results come back to verify-webhook; the app never marks itself verified.
+// Starts the selfie and age check with Yoti and returns the URL the app opens.
+// Secrets (Supabase → Edge Functions → Secrets): VERIFY_PROVIDER=yoti, VERIFY_SDK_ID and
+// VERIFY_API_KEY from the Yoti Hub. Optional: VERIFY_API_URL (default https://age.yoti.com) and
+// VERIFY_ESTIMATION_THRESHOLD (default 25). Results come back to verify-webhook; the app never
+// marks itself verified.
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { YOTI_API, yotiSessionBody, yotiUserUrl } from '../_shared/yoti.ts';
 
 type Session = { reference: string; url: string };
 
-async function startSession(memberId: string): Promise<Session> {
+async function startSession(): Promise<Session> {
   const provider = Deno.env.get('VERIFY_PROVIDER');
-  const apiUrl = Deno.env.get('VERIFY_API_URL');
+  const sdkId = Deno.env.get('VERIFY_SDK_ID');
   const apiKey = Deno.env.get('VERIFY_API_KEY');
-  if (!provider || !apiUrl || !apiKey) throw new Error('verification_not_configured');
-  // Most providers: create a session for liveness + face match + age, with our member id as the
-  // external reference and verify-webhook as the callback. Adjust the body to the provider's API.
-  const res = await fetch(`${apiUrl}/sessions`, {
+  if (provider !== 'yoti' || !sdkId || !apiKey) throw new Error('verification_not_configured');
+  const api = Deno.env.get('VERIFY_API_URL') ?? YOTI_API;
+  const threshold = Number(Deno.env.get('VERIFY_ESTIMATION_THRESHOLD') ?? '25');
+  const res = await fetch(`${api}/api/v1/sessions`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      external_reference: memberId,
-      checks: ['liveness', 'face_match', 'age_over_18'],
-      callback_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/verify-webhook`,
-    }),
+    headers: { Authorization: `Bearer ${apiKey}`, 'Yoti-Sdk-Id': sdkId, 'Content-Type': 'application/json' },
+    body: JSON.stringify(yotiSessionBody({
+      notificationUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/verify-webhook`,
+      estimationThreshold: Number.isFinite(threshold) ? threshold : 25,
+    })),
   });
   if (!res.ok) throw new Error(`provider_error_${res.status}`);
   const body = await res.json();
-  return { reference: body.id ?? body.session_id, url: body.url ?? body.client_url };
+  if (!body?.id) throw new Error('provider_error_no_session');
+  return { reference: body.id, url: yotiUserUrl(body.id, sdkId, api) };
 }
 
 Deno.serve(async (req) => {
@@ -33,9 +36,10 @@ Deno.serve(async (req) => {
   const { data: { user: me } } = await user.auth.getUser();
   if (!me) return new Response('Unauthorised', { status: 401 });
   try {
-    const s = await startSession(me.id);
+    const s = await startSession();
     const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-    await admin.from('verifications').insert({ member: me.id, provider: Deno.env.get('VERIFY_PROVIDER'), reference: s.reference });
+    const { error } = await admin.from('verifications').insert({ member: me.id, provider: 'yoti', reference: s.reference });
+    if (error) throw new Error('could_not_record_session');
     return Response.json({ url: s.url });
   } catch (e) {
     return Response.json({ error: String((e as Error).message) }, { status: 502 });

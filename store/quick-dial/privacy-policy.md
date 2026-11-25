@@ -18,7 +18,7 @@ Contact: [CONTACT EMAIL].
 | Rough location, rounded to about 1 km | Showing people nearby. Others only ever see a distance like "3 mi" | Contract |
 | Dials you give and receive (scores from 1 to 100) | Matching, and your own Dial. Nobody ever sees one person's score; averages appear only once at least 5 people have dialled | Contract |
 | Messages | Chatting with your connections | Contract |
-| Selfie and age check results | Making sure everyone is real, matches their photos and is over 18 | Legitimate interests and legal obligation |
+| Age check result (over 18 or not) | Making sure everyone is over 18 | Legitimate interests and legal obligation |
 | Reports and blocks | Keeping members safe | Legitimate interests |
 | Push notification token | Telling you about mutuals and messages | Consent (you can switch notifications off on your phone) |
 
@@ -28,7 +28,7 @@ only to show you the right people, with your explicit consent given when you set
 ## Who else handles your data
 
 - **Supabase** stores the database and your files, in the UK/EU.
-- **Yoti** runs the selfie and age check. Your selfie goes to them and is deleted once the check is done. We receive only the result.
+- **Yoti** runs the age check. You choose how: a selfie, a photo of your ID, or the Yoti app. Yoti handles these under its own privacy notice and deletes selfies used to estimate age straight after the check. We receive only the result, never your selfie or ID.
 - **Anthropic** checks new photos and stories against our rules before anyone sees them, and, only if you tap for reply ideas, suggests replies. The other person's messages are only included if they have switched that on. Anthropic does not use this data to train its models.
 - **Expo** delivers push notifications.
 - **Apple and Google** handle any payments. We never see your card details.

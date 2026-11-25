@@ -46,8 +46,13 @@ Still needs your accounts:
    media and quick_stories → moderate-content), set the `ANTHROPIC_API_KEY` secret, then set
    `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` as EAS environment variables
    (production).
-2. **Selfie and age check provider** (e.g. Yoti, Veriff, Ondato): an account and API key, then
-   finish `startSession()` in `verify-start` for that provider.
+2. **Age check: Yoti** (Age Verification, https://hub.yoti.com). Open an account, then in Supabase →
+   Edge Functions → Secrets set `VERIFY_PROVIDER` = `yoti`, `VERIFY_SDK_ID` and `VERIFY_API_KEY`
+   from the Yoti Hub. Optional: `VERIFY_ESTIMATION_THRESHOLD` (default 25, the buffer for selfie age
+   estimation; ID and the Yoti app check 18) and `VERIFY_API_URL` (default https://age.yoti.com).
+   `verify-start` creates the session and `verify-webhook` re-reads each result from Yoti, so no
+   webhook secret is needed. Members land on https://pezzadox.github.io/dial/quick-dial/verified.html
+   afterwards.
 3. **A review account** for Apple and Google: a verified test member with a complete profile,
    and a way for the reviewer to get its sign-in code.
 4. **Real-photo screenshots.** The drafts use the demo's illustrated people; screenshots with

@@ -99,6 +99,7 @@ export function QuickSetup({ onDone }: { onDone: () => void }) {
   const [locating, setLocating] = useState(false);
   const [booth, setBooth] = useState<QMedia[]>([]);
   const [verify, setVerify] = useState<'idle' | 'selfie' | 'checking' | 'done'>('idle');
+  const [waiting, setWaiting] = useState(false);   // back from the check, but no result from the server yet
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const at = steps.indexOf(step);
@@ -150,14 +151,25 @@ export function QuickSetup({ onDone }: { onDone: () => void }) {
     setBusy(true); setError(null);
     try { await quick.saveStories(stories); go('verify'); } catch (e) { setError(friendly(e)); } finally { setBusy(false); }
   };
+  // Only the server can say someone is verified (the provider tells it directly), so after the
+  // check we ask it, for up to about 12 seconds, rather than assuming it went well.
+  const resultIn = async () => {
+    for (let i = 0; i < 8; i++) {
+      const s = await quick.getSettings().catch(() => null);
+      if (s?.verified) return true;
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    return false;
+  };
+  const settle = async () => {
+    setError(null); setVerify('checking'); play('lock', 0.6);
+    const [ok] = await Promise.all([resultIn(), new Promise((r) => setTimeout(r, 1200))]);
+    setWaiting(!ok);
+    if (ok) { setVerify('done'); play('reward', 0.7); } else setVerify('idle');
+  };
   const runVerify = async () => {
     setError(null); setVerify('selfie');
-    try {
-      await quick.verify();
-      setVerify('checking'); play('lock', 0.6);
-      await new Promise((r) => setTimeout(r, 1400));          // AI checks run on the server as uploads arrive
-      setVerify('done'); play('reward', 0.7);
-    } catch (e) { setError(friendly(e)); setVerify('idle'); }
+    try { await quick.verify(); await settle(); } catch (e) { setError(friendly(e)); setVerify('idle'); }
   };
   const finish = async () => {
     setBusy(true); setError(null);
@@ -279,17 +291,21 @@ export function QuickSetup({ onDone }: { onDone: () => void }) {
       {step === 'verify' && (
         <View style={{ alignItems: 'center' }}>
           <H1>Prove you're you</H1>
-          <Muted style={{ textAlign: 'center' }}>A 10-second selfie check confirms you're real, match your photos, and are over 18. Everyone on Quick Dial is verified, so everyone you see is too.</Muted>
+          <Muted style={{ textAlign: 'center' }}>A quick check with Yoti confirms you're over 18, with a selfie, your ID or the Yoti app. Everyone on Quick Dial is checked, so everyone you see is too.</Muted>
           <View style={styles.selfie}>
             {verify === 'idle' && <Feather name="camera" size={44} color={colours.slate} />}
             {verify === 'selfie' && <><Feather name="aperture" size={44} color={colours.accent} /><Text style={styles.selfieText}>Look at the camera, then slowly turn your head…</Text></>}
             {verify === 'checking' && <><Feather name="shield" size={44} color={colours.foil} /><Text style={styles.selfieText}>Checking your photos and stories…</Text></>}
             {verify === 'done' && <><Feather name="check-circle" size={52} color="#7FD6FF" /><Text style={styles.selfieText}>Verified. Photos and stories look good.</Text></>}
           </View>
-          {verify === 'idle' && <Button label="Start selfie check" onPress={runVerify} style={{ alignSelf: 'stretch' }} />}
+          {verify === 'idle' && waiting && <>
+            <Muted style={{ textAlign: 'center', marginBottom: 10 }}>We haven't had your result yet. If you finished the check, tap Check again in a moment. If it didn't work, you can start it again.</Muted>
+            <Button label="Check again" onPress={settle} style={{ alignSelf: 'stretch', marginBottom: 8 }} />
+          </>}
+          {verify === 'idle' && <Button kind={waiting ? 'quiet' : 'primary'} label={waiting ? 'Start the check again' : 'Start selfie check'} onPress={runVerify} style={{ alignSelf: 'stretch' }} />}
           {verify === 'done' && <Button label={busy ? 'One sec…' : 'Start dialling'} onPress={finish} disabled={busy} style={{ alignSelf: 'stretch' }} />}
           <Muted style={[styles.small, { textAlign: 'center', marginTop: 12 }]}>
-            {real ? 'Your selfie goes to our verification partner and is deleted once checked. We never show it to anyone.' : 'Demo: this simulates the check. The real app uses a certified provider for selfie and age checks.'}
+            {real ? 'Yoti runs the check and deletes selfies used to estimate age straight afterwards. We only get the result, never your selfie or ID.' : 'Demo: this simulates the check. The real app uses a certified provider for selfie and age checks.'}
           </Muted>
           {verify === 'idle' && <Button kind="quiet" label="Back" onPress={() => go('stories')} style={{ alignSelf: 'stretch', marginTop: 8 }} />}
         </View>
