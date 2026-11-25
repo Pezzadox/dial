@@ -4,6 +4,7 @@
 #   https://pezzadox.github.io/dial/quick-dial/privacy.html
 #   https://pezzadox.github.io/dial/quick-dial/terms.html
 #   https://pezzadox.github.io/dial/quick-dial/delete-account.html
+#   https://pezzadox.github.io/dial/quick-dial/child-safety.html
 #
 # The contact email comes from the repository variable QUICKDIAL_CONTACT_EMAIL
 # (Settings → Secrets and variables → Actions → Variables), so it is never committed.

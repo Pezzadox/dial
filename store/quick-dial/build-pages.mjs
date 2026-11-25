@@ -23,6 +23,7 @@ const pages = [
   { src: 'privacy-policy.md', file: 'privacy.html', title: 'Privacy policy' },
   { src: 'terms.md', file: 'terms.html', title: 'Terms of use' },
   { src: 'delete-account.md', file: 'delete-account.html', title: 'Delete your account' },
+  { src: 'child-safety.md', file: 'child-safety.html', title: 'Child safety standards' },
 ];
 
 const escape = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
