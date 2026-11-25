@@ -3,6 +3,7 @@
 // Clear passes are approved, clear breaches rejected, anything uncertain goes to the moderation console.
 // Videos always go to a person in the console (frame-by-frame checks need a video pipeline).
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { isServiceCall } from '../_shared/service.ts';
 
 const MODEL = Deno.env.get('ANTHROPIC_MODEL') ?? 'claude-haiku-5-5';
 
@@ -34,7 +35,7 @@ async function ask(system: string, content: unknown[]) {
 }
 
 Deno.serve(async (req) => {
-  if (req.headers.get('Authorization') !== `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`) return new Response('Forbidden', { status: 403 });
+  if (!isServiceCall(req.headers, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'), Deno.env.get('SUPABASE_SECRET_KEYS'))) return new Response('Forbidden', { status: 403 });
   const { table, record } = await req.json();
   // Only check what is waiting for a check. Our own approve/reject below is an UPDATE that fires
   // the quick_stories webhook again; without this it would check the same story for ever.

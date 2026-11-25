@@ -3,14 +3,14 @@
 // Needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (set automatically), and optionally
 // EXPO_ACCESS_TOKEN if push security is enabled for the Expo project.
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { isServiceCall } from '../_shared/service.ts';
 
 const EXPO_PUSH = 'https://exp.host/--/api/v2/push/send';
 
 Deno.serve(async (req) => {
-  // Only the webhook or cron (with the service role key) may call this.
-  const auth = req.headers.get('Authorization') ?? '';
+  // Only the webhook (service-role JWT) or the cron job (a secret key) may call this.
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  if (auth !== `Bearer ${serviceKey}`) return new Response('Forbidden', { status: 403 });
+  if (!isServiceCall(req.headers, serviceKey, Deno.env.get('SUPABASE_SECRET_KEYS'))) return new Response('Forbidden', { status: 403 });
 
   const db = createClient(Deno.env.get('SUPABASE_URL')!, serviceKey);
   const { data: queued, error } = await db.from('notifications')
