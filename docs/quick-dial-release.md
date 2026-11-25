@@ -2,10 +2,20 @@
 
 Store ids: `com.pezzadox.quickdial` on both stores (`com.quickdial.app` is taken on Google Play).
 Display name: Quick Dial. The Play Console app entry exists (created 22 November 2026).
-Builds go through Expo's build service (EAS), which also signs them, so there are no
-keystores or certificates to keep in this repo.
+Android builds run on GitHub (`quick-android.yml`) and are signed with an upload key whose
+secrets live in GitHub, never in this repo. Expo's build service (EAS) remains the route for iOS.
 
 ## Release
+
+Android, on GitHub (no Expo account needed): Actions → **Quick Dial Android** → Run workflow,
+version e.g. `1.0.0`. It runs the checks, makes the native project with `expo prebuild`, and
+builds and signs the bundle with Gradle. The signed bundle lands on the `play-bundles` branch for
+Play Console. It needs these GitHub secrets: the four `QUICKDIAL_ANDROID_*` signing secrets
+(`make-more-android-keys.ps1` sets them) and `QUICKDIAL_SUPABASE_ANON_KEY` (Supabase → Project
+settings → API keys). Without them, and on every push that touches `app/`, it builds an unsigned
+check bundle of the demo instead, so a broken build shows up straight away.
+
+Both stores through Expo's build service (needs `EXPO_TOKEN`):
 
     git tag quick-v1.0.0 && git push origin quick-v1.0.0
 
@@ -18,8 +28,8 @@ Done in the code:
 - **Paid plans hidden** until in-app purchases exist (`PURCHASES_LIVE` in `app/src/quick/api.ts`).
   The demo still shows them.
 - **Report and block from any profile**, not only from chats (the ··· button).
-- **A store build cannot ship the demo**: on Expo's build servers, a production build without the
-  Supabase address and key stops with an error.
+- **A store build cannot ship the demo**: on Expo's build servers or in the GitHub Android build,
+  a store build without the Supabase address and key stops with an error.
 - **Privacy policy, terms and the account-deletion page** in `store/quick-dial/`, plus store
   listings, draft screenshots, and the Play icon and feature graphic
   (`store/quick-dial/android/graphics/`). Fill in the [BRACKETED] details, then put the three pages on a

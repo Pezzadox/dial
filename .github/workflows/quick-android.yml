@@ -1,0 +1,131 @@
+# Quick Dial for Android, built on GitHub without Expo's build service:
+# expo prebuild makes the native project, Gradle builds and signs the bundle.
+#
+#   Actions → Quick Dial Android → Run workflow, version e.g. 1.0.0
+#
+# A signed store bundle needs these GitHub secrets:
+#   QUICKDIAL_ANDROID_KEYSTORE_BASE64, QUICKDIAL_ANDROID_KEYSTORE_PASSWORD,
+#   QUICKDIAL_ANDROID_KEY_ALIAS, QUICKDIAL_ANDROID_KEY_PASSWORD  (make-more-android-keys.ps1)
+#   QUICKDIAL_SUPABASE_ANON_KEY  (Supabase → Project settings → API keys: the anon/publishable key)
+# Without them it builds an unsigned check bundle of the demo, to prove the build works.
+# The signed bundle goes on the play-bundles branch for Play Console.
+
+name: Quick Dial Android
+
+on:
+  push:
+    branches: [main]
+    paths: ['app/**', '.github/workflows/quick-android.yml']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build, e.g. 1.0.0'
+        required: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: app
+    env:
+      EXPO_PUBLIC_APP: quick
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'npm', cache-dependency-path: app/package-lock.json }
+      - uses: actions/setup-java@v4
+        with: { distribution: 'temurin', java-version: '17' }
+
+      - name: Version
+        id: v
+        run: |
+          echo "name=${{ github.event.inputs.version || '0.0.0-check' }}" >> $GITHUB_OUTPUT
+          echo "code=$(( ( $(date +%s) - 1767225600 ) / 60 ))" >> $GITHUB_OUTPUT
+
+      - name: Store build or check build?
+        id: gate
+        env:
+          KEYSTORE: ${{ secrets.QUICKDIAL_ANDROID_KEYSTORE_BASE64 }}
+          ANON: ${{ secrets.QUICKDIAL_SUPABASE_ANON_KEY }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "$KEYSTORE" ] && [ -n "$ANON" ]; then
+            echo "store=yes" >> $GITHUB_OUTPUT
+          else
+            echo "store=no" >> $GITHUB_OUTPUT
+            echo "::warning::Building an unsigned check bundle (demo data). A store build needs a manual run plus the QUICKDIAL_ANDROID_* signing secrets and QUICKDIAL_SUPABASE_ANON_KEY."
+          fi
+
+      - run: npm ci
+
+      - name: Checks
+        run: npx tsc --noEmit && npx vitest run && node tests/db-rules.mjs
+
+      - name: Make the native Android project
+        env:
+          APP_VERSION: ${{ steps.v.outputs.name }}
+          ANDROID_VERSION_CODE: ${{ steps.v.outputs.code }}
+          QUICK_STORE_BUILD: ${{ steps.gate.outputs.store == 'yes' && 'true' || 'false' }}
+          EXPO_PUBLIC_SUPABASE_URL: ${{ steps.gate.outputs.store == 'yes' && 'https://jbcdzsfgqqmwwrwublzo.supabase.co' || '' }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.gate.outputs.store == 'yes' && secrets.QUICKDIAL_SUPABASE_ANON_KEY || '' }}
+        run: npx expo prebuild --platform android --no-install --clean
+
+      - name: Sign with the upload key
+        if: steps.gate.outputs.store == 'yes'
+        run: |
+          echo "${{ secrets.QUICKDIAL_ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/upload.keystore"
+          cat >> android/app/build.gradle <<'GRADLE'
+
+          // Added by the GitHub build: sign release builds with the Play upload key.
+          android {
+              signingConfigs {
+                  upload {
+                      storeFile file(System.getenv("QD_KEYSTORE"))
+                      storePassword System.getenv("QD_STORE_PASSWORD")
+                      keyAlias System.getenv("QD_KEY_ALIAS")
+                      keyPassword System.getenv("QD_KEY_PASSWORD")
+                  }
+              }
+              buildTypes { release { signingConfig signingConfigs.upload } }
+          }
+          GRADLE
+
+      - name: Build the app bundle
+        working-directory: app/android
+        env:
+          APP_VERSION: ${{ steps.v.outputs.name }}
+          ANDROID_VERSION_CODE: ${{ steps.v.outputs.code }}
+          QUICK_STORE_BUILD: ${{ steps.gate.outputs.store == 'yes' && 'true' || 'false' }}
+          EXPO_PUBLIC_SUPABASE_URL: ${{ steps.gate.outputs.store == 'yes' && 'https://jbcdzsfgqqmwwrwublzo.supabase.co' || '' }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.gate.outputs.store == 'yes' && secrets.QUICKDIAL_SUPABASE_ANON_KEY || '' }}
+          QD_KEYSTORE: ${{ runner.temp }}/upload.keystore
+          QD_STORE_PASSWORD: ${{ secrets.QUICKDIAL_ANDROID_KEYSTORE_PASSWORD }}
+          QD_KEY_ALIAS: ${{ secrets.QUICKDIAL_ANDROID_KEY_ALIAS }}
+          QD_KEY_PASSWORD: ${{ secrets.QUICKDIAL_ANDROID_KEY_PASSWORD }}
+          NODE_ENV: production
+        run: ./gradlew bundleRelease --no-daemon
+
+      - name: Keep a copy of the bundle
+        if: steps.gate.outputs.store == 'yes'
+        uses: actions/upload-artifact@v4
+        with:
+          name: quick-dial-${{ steps.v.outputs.name }}.aab
+          path: app/android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Put the bundle on the play-bundles branch
+        if: steps.gate.outputs.store == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          out="$RUNNER_TEMP/play-bundles"; mkdir -p "$out"
+          cp android/app/build/outputs/bundle/release/app-release.aab "$out/quick-dial-${{ steps.v.outputs.name }}.aab"
+          cp android/app/build/outputs/bundle/release/app-release.aab "$out/latest.aab"
+          cd "$out"
+          git init -q -b play-bundles
+          git add .
+          git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -qm "Quick Dial Android bundle ${{ steps.v.outputs.name }}"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" play-bundles

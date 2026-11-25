@@ -6,11 +6,12 @@ const QUICK = process.env.EXPO_PUBLIC_APP === 'quick';
 const EAS_PROJECT_ID = { quick: '', dial: '' };
 
 module.exports = ({ config }) => {
-  // A store build must never ship the demo (invented people). On Expo's build servers, refuse to
-  // build Quick Dial for the stores without the live backend's address and key.
-  if (process.env.EAS_BUILD === 'true' && /production/.test(process.env.EAS_BUILD_PROFILE || '')
-      && !(process.env.EXPO_PUBLIC_SUPABASE_URL && process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY)) {
-    throw new Error('Store build without EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY would ship the demo. Set them as EAS environment variables (production).');
+  // A store build must never ship the demo (invented people). On Expo's build servers or in the
+  // GitHub Android build, refuse to build Quick Dial for the stores without the live backend.
+  const storeBuild = (process.env.EAS_BUILD === 'true' && /production/.test(process.env.EAS_BUILD_PROFILE || ''))
+    || process.env.QUICK_STORE_BUILD === 'true';
+  if (storeBuild && !(process.env.EXPO_PUBLIC_SUPABASE_URL && process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY)) {
+    throw new Error('Store build without EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY would ship the demo. Set them as EAS environment variables (production) or as the QUICKDIAL_SUPABASE_* GitHub secrets.');
   }
   const id = QUICK ? 'com.pezzadox.quickdial' : 'com.dialdating.app';
   const name = QUICK ? 'Quick Dial' : config.name;
@@ -37,6 +38,8 @@ module.exports = ({ config }) => {
     android: {
       ...config.android,
       package: id,
+      // Set by the GitHub build (minutes since 2026-01-01) so every Play upload is newer.
+      ...(process.env.ANDROID_VERSION_CODE ? { versionCode: Number(process.env.ANDROID_VERSION_CODE) } : {}),
       blockedPermissions: ['android.permission.ACCESS_FINE_LOCATION', 'android.permission.READ_MEDIA_AUDIO', 'android.permission.SYSTEM_ALERT_WINDOW', 'android.permission.FOREGROUND_SERVICE', 'android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK'],
     },
     plugins: [
