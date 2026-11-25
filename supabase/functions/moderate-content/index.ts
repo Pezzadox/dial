@@ -36,6 +36,10 @@ async function ask(system: string, content: unknown[]) {
 Deno.serve(async (req) => {
   if (req.headers.get('Authorization') !== `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`) return new Response('Forbidden', { status: 403 });
   const { table, record } = await req.json();
+  // Only check what is waiting for a check. Our own approve/reject below is an UPDATE that fires
+  // the quick_stories webhook again; without this it would check the same story for ever.
+  // (A member's edit sets moderation back to 'pending' through the story_recheck trigger.)
+  if (record?.moderation && record.moderation !== 'pending') return Response.json({ id: record.id, skipped: 'already_checked' });
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   let verdict: { decision: string; reasons: string[] };
 
