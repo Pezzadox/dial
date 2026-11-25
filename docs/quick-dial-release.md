@@ -32,8 +32,10 @@ Done in the code:
   a store build without the Supabase address and key stops with an error.
 - **Privacy policy, terms and the account-deletion page** in `store/quick-dial/`, plus store
   listings, draft screenshots, and the Play icon and feature graphic
-  (`store/quick-dial/android/graphics/`). Fill in the [BRACKETED] details, then put the three pages on a
-  public web address (the website works). Have the privacy policy checked before launch.
+  (`store/quick-dial/android/graphics/`). The **Quick Dial pages** workflow publishes the three pages
+  on GitHub Pages at https://pezzadox.github.io/dial/quick-dial/ (privacy.html, terms.html,
+  delete-account.html). The contact email is filled in at publish time from the repository variable
+  `QUICKDIAL_CONTACT_EMAIL`, so it is never committed. Have the privacy policy checked before launch.
 
 Still needs your accounts:
 

@@ -1,8 +1,8 @@
 # Quick Dial terms of use
 
-Last updated: 15 November 2026
+Last updated: 25 November 2026
 
-By using Quick Dial you agree to these terms. Quick Dial is run by [OWNER OR COMPANY NAME].
+By using Quick Dial you agree to these terms. Quick Dial is run by Kyle Perry, trading as Pezzadox.
 
 1. **You must be 18 or over** and pass the selfie and age check. One account per person.
 2. **Be yourself.** Photos, video and stories must be of you and recent. No impersonation.

@@ -1,11 +1,11 @@
 # Quick Dial privacy policy
 
-Last updated: 15 November 2026
+Last updated: 25 November 2026
 
 Quick Dial is a dating app for adults in the UK. This policy explains what we collect, why, who
 else handles it, how long we keep it, and your rights.
 
-**Who we are.** Quick Dial is run by [OWNER OR COMPANY NAME], the data controller.
+**Who we are.** Quick Dial is run by Kyle Perry, trading as Pezzadox, the data controller.
 Contact: [CONTACT EMAIL].
 
 ## What we collect and why
@@ -28,7 +28,7 @@ only to show you the right people, with your explicit consent given when you set
 ## Who else handles your data
 
 - **Supabase** stores the database and your files, in the UK/EU.
-- **[VERIFICATION PROVIDER]** runs the selfie and age check. Your selfie goes to them and is deleted once the check is done. We receive only the result.
+- **Yoti** runs the selfie and age check. Your selfie goes to them and is deleted once the check is done. We receive only the result.
 - **Anthropic** checks new photos and stories against our rules before anyone sees them, and, only if you tap for reply ideas, suggests replies. The other person's messages are only included if they have switched that on. Anthropic does not use this data to train its models.
 - **Expo** delivers push notifications.
 - **Apple and Google** handle any payments. We never see your card details.

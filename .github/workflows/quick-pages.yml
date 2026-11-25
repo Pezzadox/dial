@@ -1,0 +1,54 @@
+# Quick Dial's public pages on GitHub Pages: privacy policy, terms and account deletion,
+# built from store/quick-dial/*.md by store/quick-dial/build-pages.mjs.
+#
+#   https://pezzadox.github.io/dial/quick-dial/privacy.html
+#   https://pezzadox.github.io/dial/quick-dial/terms.html
+#   https://pezzadox.github.io/dial/quick-dial/delete-account.html
+#
+# The contact email comes from the repository variable QUICKDIAL_CONTACT_EMAIL
+# (Settings → Secrets and variables → Actions → Variables), so it is never committed.
+# Pages must be set to deploy from GitHub Actions (Settings → Pages → Source).
+
+name: Quick Dial pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['store/quick-dial/*.md', 'store/quick-dial/build-pages.mjs', '.github/workflows/quick-pages.yml']
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install the markdown renderer
+        run: npm install --prefix "$RUNNER_TEMP/md" marked@12 --no-audit --no-fund
+      - name: Build the pages
+        env:
+          MARKED: ${{ runner.temp }}/md/node_modules/marked/lib/marked.esm.js
+          CONTACT_EMAIL: ${{ vars.QUICKDIAL_CONTACT_EMAIL }}
+        run: node store/quick-dial/build-pages.mjs site
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: site }
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
