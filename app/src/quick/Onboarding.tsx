@@ -169,7 +169,10 @@ export function QuickSetup({ onDone }: { onDone: () => void }) {
   };
   const runVerify = async () => {
     setError(null); setVerify('selfie');
-    try { await quick.verify(); await settle(); } catch (e) { setError(friendly(e)); setVerify('idle'); }
+    try {
+      if ((await quick.getSettings().catch(() => null))?.verified) { setVerify('done'); return; }   // already checked, e.g. after a reinstall
+      await quick.verify(); await settle();
+    } catch (e) { setError(friendly(e)); setVerify('idle'); }
   };
   const finish = async () => {
     setBusy(true); setError(null);
