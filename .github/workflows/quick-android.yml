@@ -54,6 +54,18 @@ jobs:
           ANON: ${{ secrets.QUICKDIAL_SUPABASE_ANON_KEY }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "$KEYSTORE" ] && [ -n "$ANON" ]; then
+            # The key ships inside the app, so it must be the public one, and Supabase must accept it.
+            # Release 1.0.1 went out with a value that was not a Supabase key, and every sign-in failed.
+            case "$ANON" in
+              sb_secret_*) echo "::error::QUICKDIAL_SUPABASE_ANON_KEY holds a secret key. Use the publishable key (sb_publishable_…) from Supabase → Project settings → API keys."; exit 1 ;;
+              sb_publishable_*|eyJ*) ;;
+              *) echo "::error::QUICKDIAL_SUPABASE_ANON_KEY is not a Supabase key. Copy the publishable key (sb_publishable_…) from Supabase → Project settings → API keys."; exit 1 ;;
+            esac
+            code=$(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $ANON" "https://jbcdzsfgqqmwwrwublzo.supabase.co/auth/v1/settings")
+            if [ "$code" != "200" ]; then
+              echo "::error::Supabase refused QUICKDIAL_SUPABASE_ANON_KEY (HTTP $code). Copy the publishable key again from Supabase → Project settings → API keys."
+              exit 1
+            fi
             echo "store=yes" >> $GITHUB_OUTPUT
           else
             echo "store=no" >> $GITHUB_OUTPUT

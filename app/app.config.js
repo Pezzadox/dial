@@ -1,6 +1,7 @@
 // One codebase, two apps. EXPO_PUBLIC_APP=quick builds Quick Dial; anything else builds Dial.
 // app.json holds what both share; this file adds the store identity and phone permissions.
 const QUICK = process.env.EXPO_PUBLIC_APP === 'quick';
+const { publicKeyProblem } = require('./supabase-key');
 
 // Filled in once the Expo project exists (`npx eas init` prints it). Push notifications need it.
 const EAS_PROJECT_ID = { quick: '', dial: '' };
@@ -13,6 +14,8 @@ module.exports = ({ config }) => {
   if (storeBuild && !(process.env.EXPO_PUBLIC_SUPABASE_URL && process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY)) {
     throw new Error('Store build without EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY would ship the demo. Set them as EAS environment variables (production) or as the QUICKDIAL_SUPABASE_* GitHub secrets.');
   }
+  const keyProblem = publicKeyProblem(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY);
+  if (storeBuild && keyProblem) throw new Error(`EXPO_PUBLIC_SUPABASE_ANON_KEY ${keyProblem}`);
   const id = QUICK ? 'com.pezzadox.quickdial' : 'com.dialdating.app';
   const name = QUICK ? 'Quick Dial' : config.name;
   const projectId = EAS_PROJECT_ID[QUICK ? 'quick' : 'dial'] || undefined;
