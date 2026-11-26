@@ -74,11 +74,16 @@ for (const p of pages) {
   console.log(`quick-dial/${p.file}`);
 }
 
-// Where Yoti sends members after the age check (supabase/functions/_shared/yoti.ts).
+// Where Didit sends members after the age check (supabase/functions/_shared/didit.ts).
 writeFileSync(`${out}/quick-dial/verified.html`, page('Age check', `<h1>Back to Quick Dial</h1>
 <p id="done">Your age check is finished. Close this page and go back to Quick Dial to carry on.</p>
 <p id="cancelled" hidden>You stopped the age check. Close this page and go back to Quick Dial to start it again when you're ready.</p>
-<script>if (new URLSearchParams(location.search).has('cancelled')) { done.hidden = true; cancelled.hidden = false; }</script>`));
+<p id="declined" hidden>The check didn't go through this time. Close this page and go back to Quick Dial to try again.</p>
+<script>
+const q = new URLSearchParams(location.search), s = q.get('status');
+const show = q.has('cancelled') || s === 'Abandoned' || s === 'Expired' ? cancelled : s === 'Declined' ? declined : null;
+if (show) { done.hidden = true; show.hidden = false; }
+</script>`));
 
 const links = pages.map((p) => `<li><a href="${p.file}">${p.title}</a></li>`).join('\n');
 writeFileSync(`${out}/quick-dial/index.html`, page('Quick Dial', `<h1>Quick Dial</h1>\n<ul>\n${links}\n</ul>`));

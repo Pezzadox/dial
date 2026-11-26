@@ -8,11 +8,12 @@
 # The project signs members' sessions with its newer (ECC) key, which the gateway's legacy JWT
 # check rejects, so the functions the app calls (delete-account, suggest-replies, verify-start)
 # are deployed without it and check the member themselves with auth.getUser(). verify-webhook is
-# called by Yoti, which has no Supabase sign-in; it re-reads every result from Yoti instead.
+# called by Didit, which has no Supabase sign-in; it checks Didit's signature and re-reads every
+# decision from Didit instead.
 # quick-push is also called by the cron job with a new-style secret key (no JWT), so it skips the
 # gateway check too. quick-push and moderate-content accept only the server's keys
 # (supabase/functions/_shared/service.ts); moderate-content keeps the gateway check as well.
-# The function secrets (ANTHROPIC_API_KEY, VERIFY_*) are set in Supabase, not here.
+# The function secrets (ANTHROPIC_API_KEY, DIDIT_*) are set in Supabase, not here.
 
 name: Quick Dial backend
 

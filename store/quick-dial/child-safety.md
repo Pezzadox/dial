@@ -8,7 +8,8 @@ sexual content involving or aimed at anyone under 18.
 
 ## Adults only
 
-Everyone must pass an age check with Yoti before anyone else can see their profile, and the app
+Everyone must pass an age check (a selfie age estimate, with photo ID if it's close, run by Didit)
+before anyone else can see their profile, and the app
 refuses anyone who gives a date of birth under 18.
 
 ## What isn't allowed

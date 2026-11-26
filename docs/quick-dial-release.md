@@ -55,14 +55,25 @@ Still needs your accounts:
    moderate-content, and `push_notifications` (INSERT on notifications) → quick-push, all with the
    service-role header the dashboard adds. Cron (integration installed): `quick-push-every-minute`
    calls quick-push with a secret key in the `apikey` header. Still missing: `ANTHROPIC_API_KEY`
-   (without it photos and stories stay pending, so nobody is shown) and the Yoti secrets.
-2. **Age check: Yoti** (Age Verification, https://hub.yoti.com). Open an account, then in Supabase →
-   Edge Functions → Secrets set `VERIFY_PROVIDER` = `yoti`, `VERIFY_SDK_ID` and `VERIFY_API_KEY`
-   from the Yoti Hub. Optional: `VERIFY_ESTIMATION_THRESHOLD` (default 25, the buffer for selfie age
-   estimation; ID and the Yoti app check 18) and `VERIFY_API_URL` (default https://age.yoti.com).
-   `verify-start` creates the session and `verify-webhook` re-reads each result from Yoti, so no
-   webhook secret is needed. Members land on https://pezzadox.github.io/dial/quick-dial/verified.html
-   afterwards.
+   (without it photos and stories stay pending, so nobody is shown) and the Didit secrets.
+2. **Age check: Didit, free plan** (https://business.didit.me). Didit's free plan gives $10 of
+   credit a month (selfie age estimate $0.10, ID check $0.15) and is prepaid: add no card and no
+   top-up, and it can never charge. `verify-start` stops new members once `QUICK_MONTHLY_CHECKS`
+   (default 70) have started a check that month ("Quick Dial is full for new members this month")
+   and gives each member three attempts a month, so the free credit isn't overrun. Raise the
+   number when Quick Dial earns enough to pay for more.
+   In the Didit Business Console:
+   - Create a workflow for **age verification**: selfie age estimation, minimum age 18, with an ID
+     document fallback for anyone estimated under 25. Copy its workflow id.
+   - API & Webhooks: copy the API key, and add a webhook destination
+     `https://jbcdzsfgqqmwwrwublzo.supabase.co/functions/v1/verify-webhook` for session status
+     events. Copy its signing secret (shown once).
+   - App Settings → Data retention: one month (the privacy policy says so).
+   Then in Supabase → Edge Functions → Secrets set `DIDIT_API_KEY`, `DIDIT_WORKFLOW_ID`,
+   `DIDIT_WEBHOOK_SECRET`, and optionally `QUICK_MONTHLY_CHECKS`. `verify-webhook` checks the
+   signature, re-reads each decision from Didit, and passes only a decision that shows an age of
+   18 or over (an approval with no age in it goes to review). Members land on
+   https://pezzadox.github.io/dial/quick-dial/verified.html afterwards.
 3. **A review account** for Apple and Google: a verified test member with a complete profile,
    and a way for the reviewer to get its sign-in code.
 4. **Real-photo screenshots.** The drafts use the demo's illustrated people; screenshots with

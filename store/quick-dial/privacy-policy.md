@@ -1,6 +1,6 @@
 # Quick Dial privacy policy
 
-Last updated: 25 November 2026
+Last updated: 26 November 2026
 
 Quick Dial is a dating app for adults in the UK. This policy explains what we collect, why, who
 else handles it, how long we keep it, and your rights.
@@ -28,7 +28,7 @@ only to show you the right people, with your explicit consent given when you set
 ## Who else handles your data
 
 - **Supabase** stores the database and your files, in the UK/EU.
-- **Yoti** runs the age check. You choose how: a selfie, a photo of your ID, or the Yoti app. Yoti handles these under its own privacy notice and deletes selfies used to estimate age straight after the check. We receive only the result, never your selfie or ID.
+- **Didit** (Didit Identity Spain, S.L., Barcelona) runs the age check for us. It estimates your age from a short selfie and, if it can't be sure you're over 18, asks for a photo of your ID. Didit works only on our instructions, uses your selfie and ID only for the check and to stop fraud, and deletes them within a month. We keep only the result (over 18 or not), never your selfie or ID.
 - **Anthropic** checks new photos and stories against our rules before anyone sees them, and, only if you tap for reply ideas, suggests replies. The other person's messages are only included if they have switched that on. Anthropic does not use this data to train its models.
 - **Expo** delivers push notifications.
 - **Apple and Google** handle any payments. We never see your card details.

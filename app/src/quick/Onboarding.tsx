@@ -294,10 +294,10 @@ export function QuickSetup({ onDone }: { onDone: () => void }) {
       {step === 'verify' && (
         <View style={{ alignItems: 'center' }}>
           <H1>Prove you're you</H1>
-          <Muted style={{ textAlign: 'center' }}>A quick check with Yoti confirms you're over 18, with a selfie, your ID or the Yoti app. Everyone on Quick Dial is checked, so everyone you see is too.</Muted>
+          <Muted style={{ textAlign: 'center' }}>A quick selfie check confirms you're over 18. If it can't be sure from your selfie, it asks for a photo of your ID. Everyone on Quick Dial is checked, so everyone you see is too.</Muted>
           <View style={styles.selfie}>
             {verify === 'idle' && <Feather name="camera" size={44} color={colours.slate} />}
-            {verify === 'selfie' && <><Feather name="aperture" size={44} color={colours.accent} /><Text style={styles.selfieText}>Look at the camera, then slowly turn your head…</Text></>}
+            {verify === 'selfie' && <><Feather name="aperture" size={44} color={colours.accent} /><Text style={styles.selfieText}>Follow the steps on the next screen, then come back here…</Text></>}
             {verify === 'checking' && <><Feather name="shield" size={44} color={colours.foil} /><Text style={styles.selfieText}>Checking your photos and stories…</Text></>}
             {verify === 'done' && <><Feather name="check-circle" size={52} color="#7FD6FF" /><Text style={styles.selfieText}>Verified. Photos and stories look good.</Text></>}
           </View>
@@ -308,7 +308,7 @@ export function QuickSetup({ onDone }: { onDone: () => void }) {
           {verify === 'idle' && <Button kind={waiting ? 'quiet' : 'primary'} label={waiting ? 'Start the check again' : 'Start selfie check'} onPress={runVerify} style={{ alignSelf: 'stretch' }} />}
           {verify === 'done' && <Button label={busy ? 'One sec…' : 'Start dialling'} onPress={finish} disabled={busy} style={{ alignSelf: 'stretch' }} />}
           <Muted style={[styles.small, { textAlign: 'center', marginTop: 12 }]}>
-            {real ? 'Yoti runs the check and deletes selfies used to estimate age straight afterwards. We only get the result, never your selfie or ID.' : 'Demo: this simulates the check. The real app uses a certified provider for selfie and age checks.'}
+            {real ? 'Didit runs the check for us and deletes your selfie and ID within a month. We only keep the result, never your selfie or ID.' : 'Demo: this simulates the check. The real app uses a specialist provider for selfie and age checks.'}
           </Muted>
           {verify === 'idle' && <Button kind="quiet" label="Back" onPress={() => go('stories')} style={{ alignSelf: 'stretch', marginTop: 8 }} />}
         </View>
